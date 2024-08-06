@@ -1,0 +1,342 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { ThumbsUp, MessageSquare, Plus, Clock, Send, Lock, Star, ChevronDown, ChevronUp } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+const CountdownTimer = () => {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    const targetDate = new Date("2024-09-01T00:00:00").getTime();
+
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const difference = targetDate - now;
+
+      if (difference > 0) {
+        setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((difference % (1000 * 60)) / 1000)
+        });
+      } else {
+        clearInterval(timer);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="bg-blue-100 p-4 rounded-lg mb-4 text-center">
+      <h3 className="text-lg font-semibold mb-2">Next Winning Idea Selection In:</h3>
+      <div className="flex justify-center items-center space-x-4">
+        {Object.entries(timeLeft).map(([unit, value]) => (
+          <div key={unit} className="text-center">
+            <span className="text-2xl font-bold">{value}</span>
+            <p className="text-sm">{unit.charAt(0).toUpperCase() + unit.slice(1)}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const CommentSection = ({ comments, onAddComment, locked }) => {
+  const [showAllComments, setShowAllComments] = useState(false);
+  const [newComment, setNewComment] = useState('');
+
+  const handleAddComment = () => {
+    if (newComment.trim()) {
+      onAddComment(newComment);
+      setNewComment('');
+    }
+  };
+
+  const visibleComments = showAllComments ? comments : comments.slice(0, 2);
+
+  return (
+    <div className="mt-4">
+      <h4 className="font-semibold mb-2">Comments</h4>
+      {visibleComments.map((comment, index) => (
+        <div key={index} className="flex items-start space-x-2 mb-2">
+          <Avatar className="w-8 h-8">
+            <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${comment.user}`} />
+            <AvatarFallback>{comment.user[0]}</AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="text-sm font-semibold">{comment.user}</p>
+            <p className="text-sm">{comment.text}</p>
+          </div>
+        </div>
+      ))}
+      {comments.length > 2 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowAllComments(!showAllComments)}
+          className="mt-2"
+        >
+          {showAllComments ? (
+            <>
+              <ChevronUp className="mr-2 h-4 w-4" />
+              Show Less
+            </>
+          ) : (
+            <>
+              <ChevronDown className="mr-2 h-4 w-4" />
+              Show More ({comments.length - 2} more)
+            </>
+          )}
+        </Button>
+      )}
+      {!locked && (
+        <div className="flex mt-2">
+          <Input 
+            placeholder="Add a comment..." 
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            className="flex-grow mr-2" 
+          />
+          <Button size="sm" onClick={handleAddComment}><Send className="h-4 w-4" /></Button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const StarRating = ({ rating }) => {
+  return (
+    <div className="flex">
+      {[...Array(5)].map((_, index) => (
+        <Star
+          key={index}
+          className={`h-5 w-5 ${
+            index < Math.floor(rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'
+          }`}
+        />
+      ))}
+    </div>
+  );
+};
+
+const ErrorBoundary = ({ children }) => {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    const errorHandler = (error) => {
+      console.log('Error caught by ErrorBoundary:', error);
+      setHasError(true);
+    };
+
+    window.addEventListener('error', errorHandler);
+    return () => window.removeEventListener('error', errorHandler);
+  }, []);
+
+  if (hasError) {
+    return <h1>Something went wrong. Please try refreshing the page.</h1>;
+  }
+
+  return children;
+};
+
+const CommunityWishlistFeature = () => {
+  const [isFullAccess, setIsFullAccess] = useState(false);
+  const [ideas, setIdeas] = useState([
+    { 
+      id: 1, 
+      title: "Freelance Project Management Dashboard", 
+      description: "An all-in-one dashboard for freelancers to manage multiple projects efficiently. Includes time tracking, invoicing, and client communication features.",
+      votes: 127, 
+      comments: [
+        { user: "FreelanceGuru", text: "This would be a game-changer for managing multiple clients!" },
+        { user: "DesignWhiz", text: "I'd love to see integration with popular time-tracking tools." },
+        { user: "ProductivityPro", text: "Can we add a feature for automated invoicing based on tracked time?" }
+      ],
+      votedBy: []
+    },
+    { 
+      id: 2, 
+      title: "Social Media Content Calendar Template", 
+      description: "A customizable template for planning and scheduling social media content across multiple platforms. Includes analytics integration and collaboration features.",
+      votes: 89, 
+      comments: [
+        { user: "ContentCreator", text: "A must-have for any serious social media manager." },
+        { user: "MarketingPro", text: "It would be great if it could sync with major social platforms." },
+        { user: "InfluencerInsider", text: "Adding a feature for tracking engagement rates would be amazing!" }
+      ],
+      votedBy: []
+    },
+    { 
+      id: 3, 
+      title: "Client Onboarding Workflow Guide", 
+      description: "A comprehensive guide to streamline the client onboarding process for agencies and freelancers. Includes customizable templates and best practices.",
+      votes: 64, 
+      comments: [
+        { user: "AgencyOwner", text: "This could really streamline our onboarding process!" },
+        { user: "Freelancer101", text: "Would love to see customizable templates included." },
+        { user: "ClientWhisperer", text: "Can we add a section on setting clear expectations with new clients?" }
+      ],
+      votedBy: []
+    }
+  ]);
+  const [newIdea, setNewIdea] = useState('');
+  const [currentUser] = useState("Lavish Gia");
+  const [purchasedItems, setPurchasedItems] = useState(1);
+  const [remainingVotes, setRemainingVotes] = useState(1);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [totalSubmissions, setTotalSubmissions] = useState(37);
+
+  const releasedProducts = [
+    { id: 1, title: "Freelance Invoice Generator", rating: 4.8 },
+    { id: 2, title: "Social Media Analytics Dashboard", rating: 4.5 },
+    { id: 3, title: "Client Communication Platform", rating: 4.7 }
+  ];
+
+  const addIdea = () => {
+    if (newIdea.trim()) {
+      setIdeas(prevIdeas => [
+        ...prevIdeas, 
+        { 
+          id: prevIdeas.length + 1, 
+          title: newIdea, 
+          description: "New community suggestion. Description pending review and update.",
+          votes: 1, 
+          comments: [],
+          votedBy: [currentUser]
+        }
+      ]);
+      setNewIdea('');
+      setTotalSubmissions(prev => prev + 1);
+      setShowConfirmation(true);
+      setTimeout(() => setShowConfirmation(false), 3000);
+    }
+  };
+
+  const addComment = (ideaId, comment) => {
+    setIdeas(prevIdeas => prevIdeas.map(idea => 
+      idea.id === ideaId 
+        ? { ...idea, comments: [...idea.comments, { user: currentUser, text: comment }] }
+        : idea
+    ));
+  };
+
+  const upvoteIdea = (ideaId) => {
+    if (remainingVotes > 0) {
+      setIdeas(prevIdeas => prevIdeas.map(idea => 
+        idea.id === ideaId && !idea.votedBy.includes(currentUser)
+          ? { ...idea, votes: idea.votes + 1, votedBy: [...idea.votedBy, currentUser] }
+          : idea
+      ));
+      setRemainingVotes(prevVotes => prevVotes - 1);
+    }
+  };
+
+  return (
+    <ErrorBoundary>
+      <div className="p-4 max-w-md mx-auto">
+        <h2 className="text-2xl font-bold mb-4 text-black">Community Wishlist</h2>
+        <div className="flex items-center justify-between mb-4">
+          <span>Toggle Full Access</span>
+          <Switch checked={isFullAccess} onCheckedChange={setIsFullAccess} />
+        </div>
+        <CountdownTimer />
+        {isFullAccess && (
+          <>
+            <div className="flex mb-4">
+              <Input 
+                placeholder="Propose a new product idea..." 
+                value={newIdea} 
+                onChange={(e) => setNewIdea(e.target.value)}
+                className="flex-grow mr-2"
+              />
+              <Button onClick={addIdea} className="bg-blue-600 hover:bg-blue-700"><Plus size={20} /></Button>
+            </div>
+            {showConfirmation && (
+              <div className="mb-4 p-2 bg-green-100 border border-green-400 text-green-700 rounded">
+                Your idea has been submitted successfully!
+              </div>
+            )}
+            <p className="text-sm text-gray-600 mb-4">
+              Total submissions: {totalSubmissions}
+            </p>
+          </>
+        )}
+        <div className="mb-4">
+          <p className="text-sm text-gray-600">
+            Purchased items: {purchasedItems} | Remaining votes: {remainingVotes}
+          </p>
+        </div>
+        {ideas.map(idea => (
+          <Card key={idea.id} className="mb-3 border-blue-200">
+            <CardHeader className="font-semibold text-black">{idea.title}</CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-2">{idea.description}</p>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <ThumbsUp 
+                          className={`mr-1 ${
+                            isFullAccess
+                              ? idea.votedBy.includes(currentUser)
+                                ? 'text-yellow-500'
+                                : remainingVotes > 0
+                                ? 'text-blue-500 cursor-pointer'
+                                : 'text-gray-400'
+                              : 'text-gray-400'
+                          }`} 
+                          size={16} 
+                          onClick={() => isFullAccess && upvoteIdea(idea.id)}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {remainingVotes === 0 ? "No votes remaining" : "Click to upvote"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <span>{idea.votes}</span>
+                </div>
+                <div className="flex items-center">
+                  <MessageSquare className="mr-1 text-blue-500" size={16} />
+                  <span>{idea.comments.length}</span>
+                </div>
+              </div>
+              <CommentSection 
+                comments={idea.comments} 
+                onAddComment={(comment) => addComment(idea.id, comment)}
+                locked={!isFullAccess}
+              />
+            </CardContent>
+            {!isFullAccess && (
+              <CardFooter className="bg-gray-100">
+                <Lock size={16} className="mr-2 text-gray-500" />
+                <span className="text-sm text-gray-600">Purchase to unlock full access</span>
+              </CardFooter>
+            )}
+          </Card>
+        ))}
+        <div className="mt-8">
+          <h3 className="text-xl font-bold mb-4 text-black">Previously Released Community Suggestions</h3>
+          {releasedProducts.map(product => (
+            <Card key={product.id} className="mb-3 border-green-200">
+              <CardHeader className="font-semibold text-black">{product.title}</CardHeader>
+              <CardContent className="flex justify-between items-center">
+                <StarRating rating={product.rating} />
+                <span className="text-sm text-gray-600">{product.rating.toFixed(1)} / 5.0</span>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </ErrorBoundary>
+  );
+};
+
+export default CommunityWishlistFeature;
